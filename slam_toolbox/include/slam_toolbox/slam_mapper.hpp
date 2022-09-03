@@ -60,6 +60,8 @@ public:
 
 protected:
   std::unique_ptr<karto::Mapper> mapper_;
+
+  bool trace_all_readings_ = false;
 };
 
 } // end namespace

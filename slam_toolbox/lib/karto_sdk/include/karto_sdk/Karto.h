@@ -5768,6 +5768,8 @@ namespace karto
           {
             kt_double angle = scanPose.GetHeading() + minimumAngle + beamNum * angularResolution;
 
+            rangeReading = std::min(rangeReading, pLaserRangeFinder->GetMaximumRange());
+
             Vector2<kt_double> point;
             point.SetX(scanPose.GetX() + (rangeReading * cos(angle)));
             point.SetY(scanPose.GetY() + (rangeReading * sin(angle)));
@@ -6057,7 +6059,8 @@ namespace karto
      * @param rScans
      * @param resolution
      */
-    static OccupancyGrid* CreateFromScans(const LocalizedRangeScanVector& rScans, kt_double resolution)
+    static OccupancyGrid* CreateFromScans(const LocalizedRangeScanVector& rScans, kt_double resolution,
+                                          bool trace_all_readings=false)
     {
       if (rScans.empty())
       {
@@ -6068,6 +6071,7 @@ namespace karto
       Vector2<kt_double> offset;
       ComputeDimensions(rScans, resolution, width, height, offset);
       OccupancyGrid* pOccupancyGrid = new OccupancyGrid(width, height, offset, resolution);
+      pOccupancyGrid->SetEnableTraceAllReadings(trace_all_readings);
       pOccupancyGrid->CreateFromScans(rScans);
 
       return pOccupancyGrid;
@@ -6172,6 +6176,11 @@ namespace karto
     void SetOccupancyThreshold(kt_double thresh)
     {
       m_pOccupancyThreshold->SetValue(thresh);
+    }
+
+    void SetEnableTraceAllReadings(bool enabled)
+    {
+      m_traceAllReadings = enabled;
     }
 
   protected:
@@ -6282,13 +6291,13 @@ namespace karto
         kt_double rangeReading = pScan->GetRangeReadings()[pointIndex];
         kt_bool isEndPointValid = rangeReading < (rangeThreshold - KT_TOLERANCE);
 
-        if (rangeReading <= minRange || rangeReading >= maxRange || std::isnan(rangeReading))
+        if (rangeReading <= minRange || (!m_traceAllReadings && rangeReading >= maxRange) || std::isnan(rangeReading))
         {
           // ignore these readings
           pointIndex++;
           continue;
         }
-        else if (rangeReading >= rangeThreshold)
+        else if (std::isfinite(rangeReading) && rangeReading >= rangeThreshold)
         {
           // trace up to range reading
           kt_double ratio = rangeThreshold / rangeReading;
@@ -6448,6 +6457,8 @@ namespace karto
 
     // Minimum ratio of beams hitting cell to beams passing through cell for cell to be marked as occupied
     Parameter<kt_double>* m_pOccupancyThreshold;
+
+    bool m_traceAllReadings = false;
   };  // OccupancyGrid
 
   ////////////////////////////////////////////////////////////////////////////////////////

@@ -64,7 +64,7 @@ karto::OccupancyGrid* SMapper::getOccupancyGrid(const double& resolution)
 {
   karto::OccupancyGrid* occ_grid = nullptr;
   return karto::OccupancyGrid::CreateFromScans(mapper_->GetAllProcessedScans(),
-    resolution);
+    resolution, trace_all_readings_);
 }
 
 /*****************************************************************************/
@@ -275,6 +275,11 @@ void SMapper::configure(const ros::NodeHandle& nh)
   {
     mapper_->setParamUseResponseExpansion(use_response_expansion);
   }
+
+  trace_all_readings_ = nh.param("trace_all_readings", trace_all_readings_);
+
+  // TODO(malban): why regenerate occupancy grid if the map has not changed?
+
   return;
 }
 
